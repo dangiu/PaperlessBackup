@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [ "$EUID" -ne 0 ]
+  then echo "Error, backup script must be executed as root!"
+  exit
+fi
+
+PAPERLESS=/home/YOUR_USER/paperless-ng	# absolute path to paperless-ng instance
+PASSPHRASE=YOUR_GPG_KEY_PASSPHRASE		# GPG passphrase
+GPG_KEY_ID=YOUR_GPG_KEY_ID
+MAIL=YOUR_MAIL@MAIL.COM					# MEGA login email
+PASSWORD=YOUR_PASSWORD					# MEGA password
+
+# Enter paperless-ng instance directory
+echo "Stopping paperless..."
+cd $PAPERLESS
+docker-compose down		# stop paperless
+
+# Create full backup every month (otherwise incremental backup)
+# Backs up only paperless-ng docker volumes normally located at /var/lib/docker/volumes/
+echo "Creating backup..."
+duplicity \
+	--full-if-older-than 1M \
+	--encrypt-key $GPG_KEY_ID \
+	--include /var/lib/docker/volumes/paperless_data \
+	--include /var/lib/docker/volumes/paperless_media \
+	--include /var/lib/docker/volumes/paperless_pgdata \
+	--exclude /var/lib/docker/volumes \
+	/var/lib/docker/volumes \
+	megav3://$MAIL:$PASSWORD@mega.nz/PaperlessBackup
+echo "Backup completed!"
+
+# Remove backups older than 1 year
+echo "Removing obsolete backups..."
+duplicity \
+	remove-older-than 2Y --force \
+	megav3://$MAIL:$PASSWORD@mega.nz/PaperlessBackup
+echo "Cleanup completed!"
+
+# Uncomment only if you want paperless to run after the backup
+#docker-compose up -d	# start paperless detached
+
+# Cleanup sensitive information
+unset PAPERLESS
+unset PASSPHRASE
