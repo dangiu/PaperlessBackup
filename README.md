@@ -35,7 +35,7 @@ Open the Anacron configuration file:
 
 Add a new job for the script:
 
-`@weekly	10	PaperlessBackup.weekly	/bin/bash	/PATH/TO/SCRIPT/paperless_backup`
+`7	10	PaperlessBackup.weekly	/bin/bash	/PATH/TO/SCRIPT/paperless_backup`
 
 Save and exit.
 
